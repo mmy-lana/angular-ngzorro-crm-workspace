@@ -87,9 +87,26 @@
 .stage-row {
   display: grid;
   grid-template-columns: minmax(90px, 1.2fr) minmax(60px, 2fr) 40px 70px;
+  grid-template-areas: 'label track count value';
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   padding: 3px 0;
+}
+
+.stage-row__label {
+  grid-area: label;
+}
+
+.stage-row__track {
+  grid-area: track;
+}
+
+.stage-row__count {
+  grid-area: count;
+}
+
+.stage-row__value {
+  grid-area: value;
 }
 
 .stage-row__label {
@@ -174,5 +191,48 @@
 @media (min-width: 1200px) {
   .dashboard__metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 360px viewport safety                                                      */
+/* ------------------------------------------------------------------------- */
+
+/*
+ * The four-column stage row needs 284px before it can render at all. With the
+ * dashboard and panel padding on a 360px device that leaves almost no room and
+ * the row either overflows or crushes the bar to a sliver, so below 480px the
+ * track drops to its own full-width line under the label/count/value line.
+ */
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 10px 8px;
+  }
+
+  .panel {
+    padding: 8px 10px;
+  }
+
+  .stage-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'label count value'
+      'track track track';
+    row-gap: 2px;
+  }
+
+  .stage-row__track {
+    height: 8px;
+  }
+
+  /* Long deal names wrap instead of pushing the row wider than the viewport. */
+  .stage-row__label {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* A horizontally scrolling table is a gesture nobody performs on a phone. */
+  .panel--wide {
+    overflow-x: auto;
   }
 }

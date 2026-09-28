@@ -55,6 +55,20 @@ const PRIORITY_VALUES: readonly PriorityLevel[] = Object.values(PriorityLevel);
 const STAGE_VALUES: readonly OpportunityStage[] = Object.values(OpportunityStage);
 const ACTIVITY_ENTITY_TYPES: readonly ActivityEntityType[] = ['ACCOUNT', 'OPPORTUNITY', 'CONTACT'];
 
+/**
+ * Validates a currency input at the boundary.
+ *
+ * The forms already validate, but a form is only one caller: a restored
+ * payload, a `BroadcastChannel` message from another window and a future
+ * import path all bypass it. Money is rejected at the edge rather than repaired
+ * further in, so a negative or `NaN` amount can never reach an aggregate.
+ */
+function assertPositiveAmount(value: number, field: string): void {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) {
+    throw new DomainRuleError(`${field} must be a finite number between 0 and ${Number.MAX_SAFE_INTEGER}.`);
+  }
+}
+
 /** Records created from a form that does not collect ownership are unassigned. */
 const DEFAULT_OWNER_ID = 'unassigned-owner';
 const DEFAULT_OWNER_NAME = 'Unassigned';
@@ -122,6 +136,44 @@ function applyPatch<T extends object>(current: T, patch: Partial<T>): T {
     }
   }
   return merged as T;
+}
+
+/**
+ * Demo seed opt-in.
+ *
+ * Defaults to enabled so a developer's first run is not an empty shell, and is
+ * switched off by setting `CRM_SEED_DEMO_DATA` to `false` in the build-time
+ * environment (`.env`, CI variable, or hosting config). Production builds
+ * should set it; the guard exists so that forgetting to can never write
+ * fabricated CRM records into a real database.
+ */
+function isSeedDataEnabled(): boolean {
+  const configured = readBuildTimeEnv('CRM_SEED_DEMO_DATA');
+  if (configured === undefined) {
+    return true;
+  }
+  return configured !== 'false' && configured !== '0';
+}
+
+/**
+ * Reads a build-time environment value.
+ *
+ * This is deliberately not `import.meta.env`: the app is built without Vite's
+ * own env handling in every configuration, and a missing `import.meta.env` must
+ * not take the application down. Anything already present on `globalThis` is
+ * honoured, which covers a runtime-injected config object.
+ */
+function readBuildTimeEnv(name: string): string | undefined {
+  const scope = globalThis as unknown as Record<string, unknown>;
+  const fromEnv = scope['env'];
+  if (fromEnv !== null && typeof fromEnv === 'object') {
+    const value = (fromEnv as Record<string, unknown>)[name];
+    if (typeof value === 'string') {
+      return value;
+    }
+  }
+  const direct = scope[name];
+  return typeof direct === 'string' ? direct : undefined;
 }
 
 function isTerminalStage(stage: OpportunityStage): boolean {
@@ -640,6 +692,7 @@ export class CrmRepositoryService {
   /* ---------------------------------------------------------------------- */
 
   public createAccount(input: AccountFormModel): Account {
+    assertPositiveAmount(input.annualRevenue, 'Annual revenue');
     const now = new Date().toISOString();
     const address: Address = {
       street: input.billingStreet.trim(),
@@ -673,6 +726,9 @@ export class CrmRepositoryService {
   }
 
   public updateAccount(id: UUID, patch: Partial<Account>, expectedVersion: number): Account {
+    if (patch.annualRevenue !== undefined) {
+      assertPositiveAmount(patch.annualRevenue, 'Annual revenue');
+    }
     return this.updateEntity(this.accountsCollection, id, expectedVersion, current =>
       applyPatch(current, patch)
     );
@@ -689,15 +745,17 @@ export class CrmRepositoryService {
   public deleteAccount(id: UUID): void {
     this.requireEntity(this.accountsCollection, id);
 
-    const opportunityIds = new Set(
-      this.opportunitiesSignal()
-        .filter(opportunity => opportunity.accountId === id)
-        .map(opportunity => opportunity.id)
+    const removedOpportunities = this.opportunitiesSignal().filter(
+      opportunity => opportunity.accountId === id
     );
-    const contactIds = new Set(
-      this.contactsSignal()
-        .filter(contact => contact.accountId === id)
-        .map(contact => contact.id)
+    const removedContacts = this.contactsSignal().filter(contact => contact.accountId === id);
+    const opportunityIds = new Set(removedOpportunities.map(opportunity => opportunity.id));
+    const contactIds = new Set(removedContacts.map(contact => contact.id));
+    const removedActivities = this.activitiesSignal().filter(
+      activity =>
+        (activity.entityType === 'ACCOUNT' && activity.entityId === id) ||
+        (activity.entityType === 'OPPORTUNITY' && opportunityIds.has(activity.entityId)) ||
+        (activity.entityType === 'CONTACT' && contactIds.has(activity.entityId))
     );
 
     // Step 1 and 2: activities of the account itself, of the linked
@@ -721,6 +779,22 @@ export class CrmRepositoryService {
     this.opportunitiesSignal.set(survivingOpportunities);
     this.contactsSignal.set(survivingContacts);
     this.accountsSignal.set(survivingAccounts);
+
+    // Every row the cascade removed is recorded as deleted, including the
+    // account's own activities. A tombstone must exist for the cascaded
+    // children too: a peer that never saw the cascade still holds copies of
+    // those opportunities and contacts, and without their tombstones the next
+    // sync from that peer resurrects them.
+    for (const activity of removedActivities) {
+      this.storage.recordTombstone(activity.id, activity.version);
+    }
+    for (const opportunity of removedOpportunities) {
+      this.storage.recordTombstone(opportunity.id, opportunity.version);
+    }
+    for (const contact of removedContacts) {
+      this.storage.recordTombstone(contact.id, contact.version);
+    }
+    this.storage.recordTombstone(id, this.account(id)?.version ?? 0);
 
     this.storage.save(this.activitiesCollection.storageKey, survivingActivities);
     this.storage.save(this.opportunitiesCollection.storageKey, survivingOpportunities);
@@ -812,6 +886,9 @@ export class CrmRepositoryService {
       );
     }
 
+    const removedActivities = this.activitiesSignal().filter(
+      activity => activity.entityType === 'CONTACT' && activity.entityId === id
+    );
     const survivingActivities = this.activitiesSignal().filter(
       activity => !(activity.entityType === 'CONTACT' && activity.entityId === id)
     );
@@ -819,6 +896,12 @@ export class CrmRepositoryService {
     this.contactsSignal.set(this.contactsSignal().filter(item => item.id !== id));
     // Removing the primary promotes the oldest remaining contact of the account.
     this.normalizePrimariesForAccount(contact.accountId);
+
+    for (const activity of removedActivities) {
+      this.storage.recordTombstone(activity.id, activity.version);
+    }
+    this.storage.recordTombstone(id, contact.version);
+
 
     this.storage.save(this.activitiesCollection.storageKey, survivingActivities);
     this.storage.save(this.contactsCollection.storageKey, this.contactsSignal());
@@ -829,6 +912,7 @@ export class CrmRepositoryService {
   /* ---------------------------------------------------------------------- */
 
   public createOpportunity(input: OpportunityFormModel): Opportunity {
+    assertPositiveAmount(input.amount, 'Amount');
     this.assertOpportunityLinkage(input.accountId, input.primaryContactId);
     if (input.stage === OpportunityStage.CLOSED_LOST && !input.lossReason?.trim()) {
       throw new StageTransitionError('Loss reason is mandatory when marking Closed Lost.');
@@ -869,6 +953,9 @@ export class CrmRepositoryService {
    * be bypassed by sending a patch instead.
    */
   public updateOpportunity(id: UUID, patch: Partial<Opportunity>, expectedVersion: number): Opportunity {
+    if (patch.amount !== undefined) {
+      assertPositiveAmount(patch.amount, 'Amount');
+    }
     return this.updateEntity(this.opportunitiesCollection, id, expectedVersion, current => {
       const accountId = patch.accountId ?? current.accountId;
       const primaryContactId = patch.primaryContactId ?? current.primaryContactId;
@@ -911,6 +998,9 @@ export class CrmRepositoryService {
   public deleteOpportunity(id: UUID): void {
     this.requireEntity(this.opportunitiesCollection, id);
 
+    const removedActivities = this.activitiesSignal().filter(
+      activity => activity.entityType === 'OPPORTUNITY' && activity.entityId === id
+    );
     const survivingActivities = this.activitiesSignal().filter(
       activity => !(activity.entityType === 'OPPORTUNITY' && activity.entityId === id)
     );
@@ -918,6 +1008,11 @@ export class CrmRepositoryService {
 
     this.activitiesSignal.set(survivingActivities);
     this.opportunitiesSignal.set(survivingOpportunities);
+
+    for (const activity of removedActivities) {
+      this.storage.recordTombstone(activity.id, activity.version);
+    }
+    this.storage.recordTombstone(id, this.opportunity(id)?.version ?? 0);
 
     this.storage.save(this.activitiesCollection.storageKey, survivingActivities);
     this.storage.save(this.opportunitiesCollection.storageKey, survivingOpportunities);
@@ -989,9 +1084,10 @@ export class CrmRepositoryService {
   }
 
   public deleteActivity(id: UUID): void {
-    this.requireEntity(this.activitiesCollection, id);
+    const activity = this.requireEntity(this.activitiesCollection, id);
     const surviving = this.activitiesSignal().filter(item => item.id !== id);
     this.activitiesSignal.set(surviving);
+    this.storage.recordTombstone(id, activity.version);
     this.storage.save(this.activitiesCollection.storageKey, surviving);
   }
 
@@ -1118,6 +1214,18 @@ export class CrmRepositoryService {
       accounts === null && contacts === null && opportunities === null && activities === null;
 
     if (isFirstRun) {
+      // Seeding is a demo bootstrap, not a data migration. In a production
+      // deployment an empty store means "no records yet", and quietly filling
+      // it with fictional customers is both a data-integrity incident and a
+      // confidentiality problem. It therefore requires an explicit opt-in, and
+      // never runs for a store that was already in use.
+      if (!isSeedDataEnabled()) {
+        this.accountsSignal.set([]);
+        this.contactsSignal.set([]);
+        this.opportunitiesSignal.set([]);
+        this.activitiesSignal.set([]);
+        return;
+      }
       this.accountsSignal.set([...SEED_ACCOUNTS]);
       this.contactsSignal.set([...SEED_CONTACTS]);
       this.opportunitiesSignal.set([...SEED_OPPORTUNITIES]);

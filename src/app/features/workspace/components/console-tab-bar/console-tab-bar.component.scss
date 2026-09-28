@@ -191,3 +191,32 @@
   height: 44px;
   font-size: 14px;
 }
+
+/* ------------------------------------------------------------------------- */
+/* Coarse pointer: WCAG 2.5.5 target size                                     */
+/* ------------------------------------------------------------------------- */
+
+/*
+ * A touch tablet is wide enough to render the inline tab strip, so it never
+ * matched the `.tab-bar--mobile` rule and kept an 18x18 close control — far
+ * below the 44x44 minimum, and a reliable source of mis-taps that discard a tab.
+ * Pointer modality, not viewport width, is the correct switch.
+ */
+@media (pointer: coarse) {
+  .tab-bar__tab {
+    padding: 2px 2px 2px 10px;
+  }
+
+  .tab-bar__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .tab-bar__overflow {
+    padding: 2px 10px;
+  }
+}

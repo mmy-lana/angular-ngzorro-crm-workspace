@@ -73,9 +73,28 @@ export function isClosedStage(stage: OpportunityStage): boolean {
   return STAGE_CONFIG[stage].closed;
 }
 
+/**
+ * Coerces an amount to a usable currency figure.
+ *
+ * A non-finite value (`NaN`, or an `Infinity` from a corrupt payload) or a
+ * negative one is meaningless as money, and letting it through poisons every
+ * aggregate it reaches: one `NaN` turns a pipeline total into `NaN`. Anything
+ * outside the valid range collapses to `0`, so a bad cell reads as empty rather
+ * than destroying the report around it.
+ */
+function safeAmount(amount: number): number {
+  if (!Number.isFinite(amount) || amount < 0 || amount > Number.MAX_SAFE_INTEGER) {
+    return 0;
+  }
+  return amount;
+}
+
 export function calculateExpectedRevenue(amount: number, stage: OpportunityStage): number {
   const prob = STAGE_CONFIG[stage].probability;
-  return Math.round((amount * prob) / 100);
+  // The probability is divided first: `amount * 90` can exceed 2^53 and lose
+  // precision on large deals, while `amount * (90 / 100)` stays in range.
+  const weighted = safeAmount(amount) * (prob / 100);
+  return Math.min(Math.round(weighted), Number.MAX_SAFE_INTEGER);
 }
 
 /**
@@ -133,21 +152,30 @@ export function calculateWinRate(opportunities: Opportunity[]): number {
   const wonCount = opportunities.filter(o => o.stage === OpportunityStage.CLOSED_WON).length;
   const lostCount = opportunities.filter(o => o.stage === OpportunityStage.CLOSED_LOST).length;
   const totalClosed = wonCount + lostCount;
-  return totalClosed === 0 ? 0 : Math.round((wonCount / totalClosed) * 100);
+  // No closed deals is an unknown rate, not an infinite or NaN one.
+  if (totalClosed === 0) {
+    return 0;
+  }
+  const rate = Math.round((wonCount / totalClosed) * 100);
+  // A rate is a percentage, and this value feeds progress bars and report text,
+  // where anything outside 0-100 is a visible defect.
+  return Math.min(100, Math.max(0, rate));
 }
 
 /** Sum of probability-weighted revenue across still-open opportunities. */
 export function calculateWeightedForecast(opportunities: Opportunity[]): number {
-  return opportunities
+  const total = opportunities
     .filter(o => o.stage !== OpportunityStage.CLOSED_WON && o.stage !== OpportunityStage.CLOSED_LOST)
     .reduce((sum, o) => sum + calculateExpectedRevenue(o.amount, o.stage), 0);
+  return Number.isFinite(total) ? Math.min(total, Number.MAX_SAFE_INTEGER) : 0;
 }
 
 /** Gross value of every open opportunity. */
 export function calculateOpenPipelineValue(opportunities: Opportunity[]): number {
-  return opportunities
+  const total = opportunities
     .filter(o => !isClosedStage(o.stage))
-    .reduce((sum, o) => sum + o.amount, 0);
+    .reduce((sum, o) => sum + safeAmount(o.amount), 0);
+  return Number.isFinite(total) ? Math.min(total, Number.MAX_SAFE_INTEGER) : 0;
 }
 
 /** Win rate restricted to a single forecast bucket. */

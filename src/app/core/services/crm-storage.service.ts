@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { CRM_STORAGE_KEYS, LOCAL_STORAGE } from '@core/tokens/crm-storage.token';
+import { CRM_STORAGE_KEYS, LOCAL_STORAGE, SYNCABLE_STORAGE_KEYS } from '@core/tokens/crm-storage.token';
+import { ISO8601Date, UUID } from '@core/models/crm.models';
 import { generateId } from '@core/utils/uuid';
 
 /** Emitted whenever a durable key is written, either locally or by another tab. */
@@ -14,6 +15,30 @@ interface SyncEnvelope {
   key: string;
   value: unknown;
   origin: string;
+  /**
+   * Deletions that apply to `value`.
+   *
+   * They ride along inside the envelope rather than under a key of their own:
+   * `receiveEnvelope` accepts only the four entity collection keys, so a
+   * separate tombstone key would be rejected by the allowlist and a peer would
+   * never learn that a row is dead.
+   */
+  tombstones?: Tombstone[];
+}
+
+/**
+ * A deletion record.
+ *
+ * Replication is last-writer-wins per id, so a delete would otherwise lose to
+ * any stale copy of the row that another window still holds — the record
+ * reappears after the user deliberately removed it. A tombstone inverts that:
+ * the delete is itself a versioned fact, and it is carried in the same envelope
+ * as the data, so every window converges on the deletion.
+ */
+interface Tombstone {
+  readonly id: UUID;
+  readonly deletedAt: ISO8601Date;
+  readonly version: number;
 }
 
 type CrmMigration = (value: unknown) => unknown;
@@ -58,6 +83,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
 function readVersion(record: Record<string, unknown>): number {
   const raw = record['version'];
   return typeof raw === 'number' && Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
@@ -78,7 +107,7 @@ function isQuotaError(error: unknown): boolean {
  * ties keep the value already present in this window so that two tabs writing
  * simultaneously do not ping-pong the same payload back and forth.
  */
-function mergeByVersion(current: unknown, incoming: unknown): unknown {
+function mergeByVersion(current: unknown, incoming: unknown, tombstones: ReadonlyMap<UUID, Tombstone>): unknown {
   if (!Array.isArray(current) || !Array.isArray(incoming)) {
     return incoming;
   }
@@ -88,6 +117,15 @@ function mergeByVersion(current: unknown, incoming: unknown): unknown {
 
   const register = (record: Record<string, unknown>): void => {
     const id = record['id'] as string;
+
+    // A deletion is a versioned fact, not an absence: a stale copy of a deleted
+    // row must never be reintroduced, and an equally-versioned copy loses to the
+    // tombstone. Only a strictly newer row may clear a tombstone.
+    const tombstone = tombstones.get(id);
+    if (tombstone && readVersion(record) <= tombstone.version) {
+      return;
+    }
+
     const existing = merged.get(id);
     if (!existing) {
       merged.set(id, record);
@@ -131,6 +169,7 @@ export class CrmStorageService {
   private readonly instanceId = generateId();
   private channel: BroadcastChannel | null = null;
   private storageBlocked = false;
+  private readonly syncableKeys = new Set<string>(SYNCABLE_STORAGE_KEYS);
 
   public readonly changes$: Observable<CrmStorageChange> = this.changeSubject.asObservable();
 
@@ -176,6 +215,66 @@ export class CrmStorageService {
     this.writeRaw(key, serialized);
     this.broadcast(key, data);
     this.changeSubject.next({ key, value: data });
+  }
+
+  /**
+   * Records a deletion so no window can resurrect the entity.
+   *
+   * @param version the version the row held at the moment it was deleted. A
+   *   row that was already being edited concurrently may legitimately carry a
+   *   higher version, and that edit is the deliberate resurrection of the record
+   *   rather than an accidental one.
+   */
+  public recordTombstone(id: UUID, version: number): void {
+    if (!isNonEmptyString(id)) {
+      return;
+    }
+    const registry = this.readTombstoneMap();
+    const existing = registry.get(id);
+    // Keep the strongest deletion: the highest version wins, and at equal
+    // version the earliest timestamp, so the record of when it died is stable.
+    if (existing && (existing.version > version || (existing.version === version && existing.deletedAt <= new Date().toISOString()))) {
+      return;
+    }
+    registry.set(id, { id, deletedAt: new Date().toISOString(), version });
+    this.save(CRM_STORAGE_KEYS.TOMBSTONES, [...registry.values()]);
+  }
+
+  /** Current deletion registry, keyed by id. */
+  public readTombstones(): ReadonlyMap<UUID, Tombstone> {
+    return this.readTombstoneMap();
+  }
+
+  /** Drops a tombstone, allowing a deliberate re-creation of the id. */
+  public clearTombstone(id: UUID): void {
+    const registry = this.readTombstoneMap();
+    if (!registry.delete(id)) {
+      return;
+    }
+    this.save(CRM_STORAGE_KEYS.TOMBSTONES, [...registry.values()]);
+  }
+
+  private readTombstoneMap(): Map<UUID, Tombstone> {
+    const registry = new Map<UUID, Tombstone>();
+    const raw = this.load<unknown>(CRM_STORAGE_KEYS.TOMBSTONES);
+    if (!Array.isArray(raw)) {
+      return registry;
+    }
+    for (const entry of raw) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+      const id = entry['id'];
+      if (!isNonEmptyString(id)) {
+        continue;
+      }
+      registry.set(id, {
+        id,
+        deletedAt: typeof entry['deletedAt'] === 'string' ? entry['deletedAt'] : new Date(0).toISOString(),
+        version: readVersion(entry)
+      });
+    }
+    return registry;
   }
 
   /**
@@ -264,7 +363,12 @@ export class CrmStorageService {
     if (!this.channel) {
       return;
     }
-    const envelope: SyncEnvelope = { key, value, origin: this.instanceId };
+    const envelope: SyncEnvelope = {
+      key,
+      value,
+      origin: this.instanceId,
+      tombstones: [...this.readTombstoneMap().values()]
+    };
     try {
       this.channel.postMessage(envelope);
     } catch {
@@ -276,13 +380,62 @@ export class CrmStorageService {
     if (!isRecord(envelope)) {
       return;
     }
-    const { key, value, origin } = envelope as unknown as SyncEnvelope;
-    if (typeof key !== 'string' || origin === this.instanceId) {
+    const { key, value, origin, tombstones } = envelope as unknown as SyncEnvelope;
+
+    // A message from another browsing context is untrusted input: only the four
+    // entity collections may be written, only an array payload is accepted, and
+    // only the origin window's own echo is ignored.
+    if (!isNonEmptyString(key) || origin === this.instanceId) {
+      return;
+    }
+    if (!this.syncableKeys.has(key) || !Array.isArray(value)) {
       return;
     }
 
-    const merged = mergeByVersion(this.load<unknown>(key), value);
+    // Adopt the sender's deletions before merging, so a row this window still
+    // holds cannot be reintroduced by the very envelope that carried it.
+    this.absorbTombstones(tombstones);
+    const merged = mergeByVersion(this.load<unknown>(key), value, this.readTombstoneMap());
     this.writeRaw(key, JSON.stringify(merged));
     this.changeSubject.next({ key, value: merged });
+  }
+
+  /**
+   * Merges a peer's tombstones into the local registry, keeping the strongest
+   * record per id: a later deletion at a higher version wins, and at equal
+   * version the earliest timestamp wins so the recorded moment is stable.
+   */
+  private absorbTombstones(incoming: unknown): void {
+    if (!Array.isArray(incoming) || incoming.length === 0) {
+      return;
+    }
+    const registry = this.readTombstoneMap();
+    let changed = false;
+    for (const entry of incoming) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+      const id = entry['id'];
+      if (!isNonEmptyString(id)) {
+        continue;
+      }
+      const candidate: Tombstone = {
+        id,
+        deletedAt: typeof entry['deletedAt'] === 'string' ? entry['deletedAt'] : new Date(0).toISOString(),
+        version: readVersion(entry)
+      };
+      const existing = registry.get(id);
+      const isStronger =
+        !existing ||
+        candidate.version > existing.version ||
+        (candidate.version === existing.version && candidate.deletedAt < existing.deletedAt);
+      if (isStronger) {
+        registry.set(id, candidate);
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.writeRaw(CRM_STORAGE_KEYS.TOMBSTONES, JSON.stringify([...registry.values()]));
+    }
   }
 }

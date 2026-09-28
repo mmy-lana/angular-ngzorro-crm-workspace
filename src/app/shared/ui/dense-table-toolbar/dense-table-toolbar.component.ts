@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -228,6 +228,22 @@ export class DenseTableColumnsPopoverComponent {
   ]
 })
 export class DenseTableToolbarComponent {
+  /**
+   * The debounce timer is a bare `setTimeout`, so nothing cancels it when the
+   * view is destroyed. In a keep-alive workspace shell that means a toolbar
+   * closed mid-keystroke fires `searchChange` against a destroyed component.
+   */
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.debounceHandle !== null) {
+        clearTimeout(this.debounceHandle);
+        this.debounceHandle = null;
+      }
+    });
+  }
+
   public readonly searchPlaceholder = input<string>('Search records...');
   public readonly filterActive = input<boolean>(false);
   /** Column definitions; the default is the bare search/create toolbar. */

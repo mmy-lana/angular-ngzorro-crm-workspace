@@ -120,3 +120,36 @@
     height: 20px;
   }
 }
+
+/*
+ * The checkbox is a 20px control inside a 28px row, which is below the 44x44
+ * WCAG 2.5.5 minimum on touch.
+ *
+ * The target is grown to 44px and the reclaimed space is taken back with a
+ * negative right margin, so the text column does not shift right. A negative
+ * *left* margin would have pushed the control past the 12px gutter of the body
+ * it sits in and been a 2px horizontal overflow of its own. The glyph stays at
+ * 20px and is centred in the enlarged target.
+ */
+@media (pointer: coarse) {
+  .timeline__item {
+    padding: 10px 0;
+  }
+
+  .timeline__check {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 44px;
+    min-height: 44px;
+    height: auto;
+    /* 44px target + 8px gap - 30px reclaim = the original 22px offset. */
+    margin-right: -30px;
+  }
+
+  .timeline__check input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+}

@@ -3,21 +3,49 @@ import { FilterCriterion, SortCriterion } from '@core/models/crm.models';
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
 /**
+ * Path segments that reach the prototype chain.
+ *
+ * A filter criterion's `field` is data, and data here is persisted in
+ * `localStorage`, restored from a session, or received over `BroadcastChannel`
+ * from another browsing context. Traversing `constructor.prototype` through a
+ * dotted path lets a crafted criterion read `Object.prototype` and pollute
+ * lookups for every record in the store, so the traversal is refused outright
+ * rather than filtered case-insensitively after the fact.
+ */
+const FORBIDDEN_PATH_SEGMENTS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
+
+function isForbiddenSegment(segment: string): boolean {
+  return FORBIDDEN_PATH_SEGMENTS.has(segment.toLowerCase());
+}
+
+/**
  * Reads a dotted path out of an unknown record.
  *
  * Returning `unknown` rather than `any` is the point: every consumer below has
  * to narrow before comparing, which keeps a malformed field from silently
- * coercing to a match.
+ * coercing to a match. Any path segment that would reach the prototype chain
+ * aborts the whole traversal and yields `undefined`, so a poisoned criterion
+ * matches nothing rather than matching everything.
  */
 function getNestedValue(source: unknown, path: string): unknown {
   if (source === null || typeof source !== 'object') {
     return undefined;
   }
-  return path.split('.').reduce<unknown>((current, segment) => {
+  const segments = path.split('.');
+  for (const segment of segments) {
+    if (isForbiddenSegment(segment)) {
+      return undefined;
+    }
+  }
+  return segments.reduce<unknown>((current, segment) => {
     if (current === null || current === undefined || typeof current !== 'object') {
       return undefined;
     }
-    return (current as Record<string, unknown>)[segment];
+    // `Object.create(null)` records have no inherited members, so an own-property
+    // check keeps a plain object from exposing `toString` as a sortable value.
+    return Object.prototype.hasOwnProperty.call(current, segment)
+      ? (current as Record<string, unknown>)[segment]
+      : undefined;
   }, source);
 }
 
