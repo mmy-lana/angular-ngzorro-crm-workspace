@@ -119,11 +119,22 @@
   font-weight: 700;
 }
 
+/*
+ * The overflow menu renders inside a CDK overlay directly above the record
+ * banner. Without an explicit surface the list is transparent, so tab titles
+ * read on top of banner text and metric chips. The surface is painted here
+ * rather than inherited so the menu stays legible regardless of what the
+ * overlay's own theming does.
+ */
 .tab-bar__menu {
   margin: 0;
-  padding: 0;
+  padding: 4px 0;
   list-style: none;
-  min-width: 200px;
+  min-width: 220px;
+  background: var(--slds-surface-card);
+  border: 1px solid var(--slds-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 
 .tab-bar__menu-item {
@@ -131,7 +142,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border: 0;
   background: transparent;
   font: inherit;
@@ -139,14 +150,22 @@
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 120ms ease;
 }
 
 .tab-bar__menu-item:hover {
   background: var(--slds-surface);
 }
 
+.tab-bar__menu-item:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
 .tab-bar__menu-item.is-active {
   font-weight: 600;
+  background: color-mix(in srgb, var(--slds-brand) 8%, var(--slds-surface-card));
+  color: var(--slds-brand);
 }
 
 /* --- Mobile picker ------------------------------------------------------- */

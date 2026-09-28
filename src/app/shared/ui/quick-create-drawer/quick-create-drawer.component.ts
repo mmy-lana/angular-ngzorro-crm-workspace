@@ -669,9 +669,7 @@ export class QuickCreateDrawerComponent {
       this.errorMessage.set('An activity must belong to a record. Open the record first.');
       return;
     }
-    const dueDate = raw.dueDate && raw.type !== ActivityType.NOTE
-      ? new Date(`${raw.dueDate}T09:00:00`).toISOString()
-      : null;
+    const dueDate = this.parseDueDate(raw.dueDate, raw.type);
 
     if (this.mode() === 'edit') {
       const existing = this.requireActivity();
@@ -703,6 +701,47 @@ export class QuickCreateDrawerComponent {
       notes: raw.notes
     };
     this.repo.createActivity(model);
+  }
+
+  /**
+   * Converts a due-date control value into a stored ISO timestamp.
+   *
+   * The control is bound to a native date input, so today it only ever yields
+   * `YYYY-MM-DD` or null. That is a property of *this* binding, not of the
+   * repository: the value is typed `unknown` at this boundary so a caller that
+   * supplies a `Date`, a full ISO string, a locale-formatted string or a
+   * malformed value cannot reach `new Date(...).toISOString()` and raise
+   * `RangeError: Invalid time value` on submit. Anything unparseable degrades
+   * to "no due date" rather than failing the whole save.
+   *
+   * A date-only value is anchored at 09:00 local rather than midnight, so a
+   * user west of UTC does not see the due date silently shift to the previous
+   * day.
+   */
+  private parseDueDate(value: unknown, type: ActivityType): string | null {
+    // A note records something that already happened: it carries no due date.
+    if (type === ActivityType.NOTE || value === null || value === undefined) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value.toISOString();
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+
+    // A string that already carries a time component is parsed as-is; a
+    // date-only string gets the 09:00 local anchor.
+    const candidate = trimmed.includes('T') ? trimmed : `${trimmed}T09:00:00`;
+    const timestamp = Date.parse(candidate);
+    return Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString();
   }
 
   /* ---------------------------------------------------------------------- */

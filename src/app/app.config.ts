@@ -3,6 +3,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideNzI18n, en_US } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
+import { provideNzNativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { provideNzConfig } from 'ng-zorro-antd/core/config';
@@ -52,6 +53,11 @@ export const appConfig: ApplicationConfig = {
     // tree-shakable scope, so a single missing provider is a compile-time
     // omission rather than an NG0201 white screen at first interaction.
     NzModalService,
-    NzMessageService
+    NzMessageService,
+    // `NzDateAdapter` is not tree-shakable: it carries no `ɵprov` of its own and
+    // exists only as the value produced by this provider. Without it every
+    // `nz-date-picker` raises NG0201 the moment the Activity composer mounts,
+    // which is inside both record views.
+    provideNzNativeDateAdapter()
   ]
 };

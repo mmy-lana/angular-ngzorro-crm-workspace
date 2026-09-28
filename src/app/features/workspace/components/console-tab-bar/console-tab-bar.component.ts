@@ -95,6 +95,8 @@ const INLINE_TAB_LIMIT = 3;
             tabindex="0"
             aria-haspopup="menu"
             [attr.aria-label]="'More tabs, ' + overflow().length + ' hidden'"
+            (keydown.enter)="openOverflowMenu($event)"
+            (keydown.space)="openOverflowMenu($event); $event.preventDefault()"
           >
             <span class="tab-bar__overflow-label">More</span>
             <span class="tab-bar__overflow-count">{{ overflow().length }}</span>
@@ -146,6 +148,22 @@ export class ConsoleTabBarComponent {
     const target = event.target;
     if (target instanceof HTMLSelectElement) {
       this.tabSelect.emit(target.value);
+    }
+  }
+
+  /**
+   * Keyboard equivalent of the click trigger.
+   *
+   * `nz-trigger="click"` only listens for a pointer, so a keyboard user could
+   * focus this control and never open the menu. The click is dispatched on
+   * `currentTarget` rather than `target`: `target` is whatever child the key
+   * landed on, and clicking a `<span>` that has no handler of its own would
+   * not open the dropdown.
+   */
+  protected openOverflowMenu(event: Event): void {
+    const element = event.currentTarget;
+    if (element instanceof HTMLElement) {
+      element.click();
     }
   }
 
