@@ -1,0 +1,122 @@
+:host {
+  display: block;
+}
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--slds-border);
+}
+
+.timeline__item:last-child {
+  border-bottom: 0;
+}
+
+.timeline__check {
+  display: flex;
+  align-items: center;
+  /* Keeps the checkbox aligned with the first line of the subject text. */
+  height: 20px;
+}
+
+.timeline__check input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--slds-brand);
+}
+
+.timeline__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.timeline__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.timeline__icon {
+  flex: 0 0 auto;
+  color: var(--slds-text-secondary);
+}
+
+.timeline__subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--slds-font-size-body);
+  color: var(--slds-text-primary);
+}
+
+.timeline__item.is-completed .timeline__subject {
+  text-decoration: line-through;
+  color: var(--slds-text-secondary);
+}
+
+.timeline__notes {
+  margin: 2px 0 0;
+  font-size: var(--slds-font-size-label);
+  line-height: 1.4;
+  color: var(--slds-text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.timeline__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+}
+
+.timeline__meta-sep {
+  color: var(--slds-border);
+}
+
+.timeline__due.is-overdue {
+  color: var(--slds-error);
+  font-weight: 600;
+}
+
+.timeline__due.is-today {
+  color: var(--slds-warning);
+  font-weight: 600;
+}
+
+.timeline__due.is-upcoming {
+  color: var(--slds-text-secondary);
+}
+
+@media (pointer: coarse) {
+  .timeline__item {
+    padding: 10px 0;
+  }
+
+  .timeline__check {
+    height: 28px;
+  }
+
+  .timeline__check input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+}

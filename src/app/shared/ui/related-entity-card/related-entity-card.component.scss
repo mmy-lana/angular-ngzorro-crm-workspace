@@ -1,0 +1,107 @@
+:host {
+  display: block;
+}
+
+.related-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--slds-surface-card);
+  border: 1px solid var(--slds-border);
+}
+
+.related-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--slds-border);
+  background: var(--slds-surface);
+}
+
+.related-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--slds-font-size-body);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-primary);
+}
+
+.related-card__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--slds-brand);
+  color: #ffffff;
+  font-size: var(--slds-font-size-label);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.related-card__add {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.related-card__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--slds-font-size-body);
+}
+
+.related-card__table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--slds-text-secondary);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--slds-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-card__table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--slds-border);
+  color: var(--slds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-card__table tbody tr {
+  cursor: pointer;
+}
+
+.related-card__table tbody tr:hover {
+  background: var(--slds-surface);
+}
+
+.related-card__table tbody tr:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
+.related-card__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (pointer: coarse) {
+  .related-card__table td {
+    padding: 10px 8px;
+  }
+}

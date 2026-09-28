@@ -62,7 +62,14 @@ export enum IndustryType {
   CONSULTING = 'CONSULTING'
 }
 
-/** Icon keys registered in `appConfig` and resolved by `<span nz-icon>`. */
+/**
+ * Icon keys registered in `appConfig` and resolved by `<span nz-icon>`.
+ *
+ * This list and `APP_ICONS` in `app.config.ts` must stay in step: an icon that
+ * is registered but absent here cannot be typed as a `SupportedIcon`, and
+ * `WorkspaceTabService` sanitises persisted tabs against this list, so a key
+ * missing here would also make that tab icon unpersistable.
+ */
 export const ICON_NAMES = [
   'dashboard',
   'team',
@@ -76,7 +83,10 @@ export const ICON_NAMES = [
   'menu',
   'edit',
   'delete',
-  'down'
+  'down',
+  'check-circle',
+  'clock-circle',
+  'right'
 ] as const;
 
 export type SupportedIcon = typeof ICON_NAMES[number];

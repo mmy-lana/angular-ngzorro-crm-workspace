@@ -1,0 +1,82 @@
+:host {
+  display: block;
+}
+
+.record-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--slds-surface-card);
+  border-bottom: 1px solid var(--slds-border);
+}
+
+.record-banner__identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.record-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 2px;
+  background: var(--slds-brand);
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.record-banner__title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--slds-font-size-heading);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--slds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Two columns on a phone, four on a tablet and above. */
+.record-banner__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.record-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.record-banner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (min-width: 768px) {
+  .record-banner__metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (pointer: coarse) {
+  .record-banner__action {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+}

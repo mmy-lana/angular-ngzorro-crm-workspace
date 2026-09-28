@@ -1,0 +1,84 @@
+:host {
+  display: contents;
+}
+
+.drawer-body {
+  padding-bottom: 8px;
+}
+
+.drawer-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-form__row {
+  display: flex;
+  gap: 8px;
+}
+
+.drawer-form__row > nz-form-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.drawer-form__fieldset {
+  margin: 0 0 8px;
+  padding: 8px 8px 0;
+  border: 1px solid var(--slds-border);
+}
+
+.drawer-form__fieldset legend {
+  padding: 0 4px;
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-secondary);
+}
+
+.drawer-form__hint {
+  margin-top: 2px;
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+}
+
+.drawer-form__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.drawer-form__check input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--slds-brand);
+}
+
+.drawer-body__error {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--slds-error);
+  background: color-mix(in srgb, var(--slds-error) 8%, transparent);
+  color: var(--slds-error);
+  font-size: var(--slds-font-size-body);
+}
+
+.drawer-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 8px 0;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  background: var(--slds-surface-card);
+  border-top: 1px solid var(--slds-border);
+}
+
+@media (pointer: coarse) {
+  .drawer-footer button {
+    min-height: 44px;
+    min-width: 96px;
+  }
+}
