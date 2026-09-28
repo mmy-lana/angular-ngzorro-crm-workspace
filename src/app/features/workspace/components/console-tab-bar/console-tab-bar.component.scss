@@ -1,0 +1,193 @@
+:host {
+  display: block;
+  background: var(--slds-surface-card);
+  border-bottom: 1px solid var(--slds-border);
+}
+
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  overflow: hidden;
+  background: var(--slds-border);
+  padding: 0 2px;
+}
+
+.tab-bar__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 220px;
+  padding: 6px 6px 6px 10px;
+  background: var(--slds-surface);
+  color: var(--slds-text-secondary);
+  font-size: var(--slds-font-size-body);
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-bar__tab:hover {
+  background: var(--slds-surface-card);
+}
+
+.tab-bar__tab.is-active {
+  background: var(--slds-surface-card);
+  color: var(--slds-text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--slds-brand);
+}
+
+.tab-bar__tab:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
+.tab-bar__dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* Unsaved work: a filled dot plus the close control's title text. */
+.tab-bar__dot.is-dirty,
+.tab-bar__tab.is-dirty .tab-bar__dot {
+  background: var(--slds-warning);
+}
+
+.tab-bar__icon {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.tab-bar__title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-bar__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.tab-bar__close:hover {
+  background: color-mix(in srgb, var(--slds-error) 16%, transparent);
+  color: var(--slds-error);
+}
+
+.tab-bar__overflow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  background: var(--slds-surface-card);
+  font-size: var(--slds-font-size-body);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab-bar__overflow-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--slds-brand);
+  color: #ffffff;
+  font-size: var(--slds-font-size-label);
+  font-weight: 700;
+}
+
+.tab-bar__menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 200px;
+}
+
+.tab-bar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--slds-text-primary);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-bar__menu-item:hover {
+  background: var(--slds-surface);
+}
+
+.tab-bar__menu-item.is-active {
+  font-weight: 600;
+}
+
+/* --- Mobile picker ------------------------------------------------------- */
+
+.tab-bar--mobile {
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--slds-surface-card);
+}
+
+.tab-bar__picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.tab-bar__picker-icon {
+  display: flex;
+  align-items: center;
+  color: var(--slds-brand);
+}
+
+.tab-bar__select {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  border: 1px solid var(--slds-border);
+  border-radius: 2px;
+  background: var(--slds-surface-card);
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--slds-text-primary);
+  padding: 0 6px;
+}
+
+.tab-bar--mobile .tab-bar__close {
+  width: 44px;
+  height: 44px;
+  font-size: 14px;
+}

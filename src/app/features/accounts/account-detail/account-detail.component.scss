@@ -1,0 +1,126 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow: auto;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.detail__tabs {
+  margin-top: 8px;
+  background: var(--slds-surface-card);
+}
+
+.detail__body {
+  padding: 12px;
+}
+
+.detail__body--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.detail__col {
+  min-width: 0;
+}
+
+.detail__col-title {
+  margin: 0 0 8px;
+  font-size: var(--slds-font-size-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-secondary);
+}
+
+.detail__empty {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--slds-text-secondary);
+  font-size: var(--slds-font-size-body);
+}
+
+/* --- Definition list ------------------------------------------------------ */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.fields__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--slds-border);
+}
+
+.fields__row:last-child {
+  border-bottom: 0;
+}
+
+.fields dt {
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-secondary);
+  align-self: center;
+}
+
+.fields dd {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--slds-font-size-body);
+  color: var(--slds-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fields__numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.fields__loss {
+  color: var(--slds-error);
+}
+
+.is-overdue {
+  color: var(--slds-error);
+  font-weight: 600;
+}
+
+.fields__link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--slds-brand);
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* --- Missing record ------------------------------------------------------- */
+
+.detail__missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--slds-text-secondary);
+}
+
+@media (min-width: 1024px) {
+  .detail__body--split {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}

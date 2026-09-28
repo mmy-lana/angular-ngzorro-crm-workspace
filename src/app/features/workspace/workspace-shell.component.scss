@@ -1,0 +1,43 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.shell__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--slds-surface);
+}
+
+/*
+ * Every open tab keeps a mounted pane; only the active one is shown.
+ * `display: none !important` beats the flex layout of the container, so a hidden
+ * pane cannot steal a share of the height before Angular applies [hidden].
+ */
+.workspace-pane {
+  height: 100%;
+  overflow: auto;
+}
+
+.workspace-pane[hidden] {
+  display: none !important;
+}
+
+/*
+ * On a phone the console stacks: the pane takes the space above the docked
+ * action bar, and the bar is pinned by the utility bar's own sticky rule.
+ */
+@media (max-width: 767px) {
+  .shell__main {
+    /* Leaves room for the docked bar and the home indicator. */
+    padding-bottom: calc(48px + env(safe-area-inset-bottom));
+  }
+}

@@ -382,13 +382,23 @@ interface PrimaryNormalization {
  * Restores "at most one primary contact per account" together with the
  * complementary rule that an account which has contacts always has one.
  *
- * Ranking is deterministic: an existing primary wins, otherwise the oldest
- * contact by `createdAt`, with the id as a tie-breaker. Input order is
- * preserved so list views do not reshuffle. Re-normalization deliberately does
- * not bump `version`: the flag is derived state, and a derived change must not
- * outrank a genuinely newer record during the cross-window merge.
+ * `preferredId` expresses the caller's intent. Without it, ranking is
+ * "an existing primary wins, otherwise the oldest contact", which is what a
+ * delete or a hydration repair wants. With it, that contact wins outright — which
+ * is what "set this contact as primary" must mean, since age must not silently
+ * overrule an explicit user action.
+ *
+ * Remaining ties break on `createdAt`, then on `id`, so the outcome is total and
+ * reproducible. Input order is preserved so list views do not reshuffle.
+ *
+ * Re-normalization deliberately does not bump `version`: the flag is derived
+ * state, and a derived change must not outrank a genuinely newer record during
+ * the cross-window merge.
  */
-function normalizePrimaryContacts(contacts: readonly Contact[]): PrimaryNormalization {
+function normalizePrimaryContacts(
+  contacts: readonly Contact[],
+  preferredId?: UUID
+): PrimaryNormalization {
   const buckets = new Map<UUID, Contact[]>();
   for (const contact of contacts) {
     const bucket = buckets.get(contact.accountId);
@@ -402,6 +412,14 @@ function normalizePrimaryContacts(contacts: readonly Contact[]): PrimaryNormaliz
   const winnerById = new Map<UUID, Contact>();
   for (const bucket of buckets.values()) {
     const ranked = [...bucket].sort((a, b) => {
+      if (preferredId !== undefined && a.id !== b.id) {
+        if (a.id === preferredId) {
+          return -1;
+        }
+        if (b.id === preferredId) {
+          return 1;
+        }
+      }
       if (a.isPrimary !== b.isPrimary) {
         return a.isPrimary ? -1 : 1;
       }
@@ -734,9 +752,11 @@ export class CrmRepositoryService {
       updatedAt: now
     };
     this.contactsSignal.update(items => [...items, contact]);
-    // The first contact of an account is promoted automatically, and promoting
-    // one demotes its siblings, inside this same signal update.
-    this.normalizePrimariesForAccount(input.accountId);
+    // The first contact of an account is promoted automatically, and a contact
+    // created as primary demotes its siblings — both inside this same signal
+    // update. The new contact is named as the preferred winner so a brand new
+    // record cannot lose the flag back to an older incumbent.
+    this.normalizePrimariesForAccount(input.accountId, contact.isPrimary ? contact.id : undefined);
     this.storage.save(this.contactsCollection.storageKey, this.contactsSignal());
     return this.contact(contact.id) ?? contact;
   }
@@ -753,6 +773,11 @@ export class CrmRepositoryService {
     const moved = updated.accountId !== previous.accountId;
     let repaired = false;
     if (patch.isPrimary === true) {
+      // An explicit promotion must win outright, not on seniority.
+      repaired = this.normalizePrimariesForAccount(updated.accountId, updated.id);
+    } else if (patch.isPrimary === false && !moved) {
+      // Demoting hands the flag to a sibling: an account that has contacts
+      // must never be left with no primary.
       repaired = this.normalizePrimariesForAccount(updated.accountId);
     } else if (moved) {
       // Moving a contact re-runs the invariant on both sides of the move.
@@ -1043,12 +1068,14 @@ export class CrmRepositoryService {
   /**
    * Re-applies the single-primary rule to one account.
    *
+   * @param preferredId contact that must win the flag, when the caller expressed
+   *   an explicit preference rather than merely repairing the invariant.
    * @returns `true` when the contact collection was rewritten.
    */
-  private normalizePrimariesForAccount(accountId: UUID): boolean {
+  private normalizePrimariesForAccount(accountId: UUID, preferredId?: UUID): boolean {
     const all = this.contactsSignal();
     const bucket = all.filter(contact => contact.accountId === accountId);
-    const { contacts: normalized, changed } = normalizePrimaryContacts(bucket);
+    const { contacts: normalized, changed } = normalizePrimaryContacts(bucket, preferredId);
     if (!changed) {
       return false;
     }

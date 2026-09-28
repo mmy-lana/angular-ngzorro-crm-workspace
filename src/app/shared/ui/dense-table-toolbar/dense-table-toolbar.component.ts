@@ -129,19 +129,28 @@ export class DenseTableColumnsPopoverComponent {
           <span>Filter</span>
         </button>
 
-        <nz-popover nzTrigger="click" nzPlacement="bottomRight">
-          <button nz-button nzType="default" nzSize="small" class="toolbar__button" aria-label="Choose visible columns">
-            <nz-icon nzType="menu" />
-            <span>Columns</span>
-          </button>
-          <ng-container *nzPopoverContent>
-            <app-dense-table-columns-popover
-              [columns]="columns()"
-              [hiddenColumns]="hiddenColumns()"
-              (columnsChanged)="columnsChange.emit($event)"
-            />
-          </ng-container>
-        </nz-popover>
+        <ng-template #columnsTemplate>
+          <app-dense-table-columns-popover
+            [columns]="columns()"
+            [hiddenColumns]="hiddenColumns()"
+            (columnsChanged)="columnsChange.emit($event)"
+          />
+        </ng-template>
+
+        <button
+          nz-button
+          nzType="default"
+          nzSize="small"
+          class="toolbar__button"
+          nz-popover
+          [nzPopoverContent]="columnsTemplate"
+          nzPopoverTrigger="click"
+          nzPopoverPlacement="bottomRight"
+          aria-label="Choose visible columns"
+        >
+          <nz-icon nzType="menu" />
+          <span>Columns</span>
+        </button>
 
         <nz-segmented
           class="toolbar__density"

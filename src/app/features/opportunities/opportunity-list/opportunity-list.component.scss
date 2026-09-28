@@ -1,0 +1,193 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow: auto;
+}
+
+.list {
+  padding: 8px 12px 16px;
+}
+
+/* --- Active filter chips ------------------------------------------------- */
+
+.list__filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0 8px;
+  font-size: var(--slds-font-size-body);
+}
+
+.list__filter-label {
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-secondary);
+}
+
+.list__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--slds-brand) 12%, transparent);
+  color: var(--slds-brand);
+  font-size: var(--slds-font-size-label);
+}
+
+.list__chip-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.list__chip-clear:hover {
+  background: color-mix(in srgb, var(--slds-brand) 24%, transparent);
+}
+
+/* --- Table --------------------------------------------------------------- */
+
+.list__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.list__sort-icon {
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+.list__row {
+  cursor: pointer;
+}
+
+.list__row:hover {
+  background: var(--slds-surface);
+}
+
+.list__name {
+  font-weight: 400;
+}
+
+.list__primary {
+  font-weight: 600;
+  color: var(--slds-brand);
+}
+
+.list__numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.list__pager {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- Mobile card stream -------------------------------------------------- */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cards__item {
+  margin: 0;
+}
+
+.cards__button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--slds-border);
+  border-radius: 2px;
+  background: var(--slds-surface-card);
+  font: inherit;
+  color: var(--slds-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cards__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cards__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cards__meta {
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.list__stage-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-text-secondary);
+}
+
+.list__stage-select {
+  min-width: 160px;
+}
+
+.list__result-count {
+  margin-left: auto;
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.list__stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.list__stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--stage-color);
+}

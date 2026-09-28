@@ -1,11 +1,47 @@
 @use './styles/theme-variables' as *;
 @use './styles/density-overrides' as *;
 
-html, body {
+/*
+ * The console fills the viewport and never the document: panes scroll
+ * internally, so the tab strip and the docked action bar stay put. A body that
+ * scrolls behind a fixed tab strip is the classic "where did my header go"
+ * console bug, and locking the height here is what prevents it.
+ */
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  overflow: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: var(--slds-font-size-body);
   background-color: var(--slds-surface);
   color: var(--slds-text-primary);
+  -webkit-text-size-adjust: 100%;
+}
+
+app-root {
+  display: block;
+  height: 100%;
+}
+
+/* Tabular figures everywhere numbers change in place, so columns stay aligned. */
+.numeric,
+.ant-table-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard focus must always be visible, including inside dense tables. */
+:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
+/* The browser's own dark-mode inversion fights the fixed light surface. */
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    color-scheme: light;
+  }
 }
