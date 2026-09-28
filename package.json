@@ -1,0 +1,36 @@
+{
+  "name": "angular-ngzorro-crm-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "lint": "ng lint"
+  },
+  "dependencies": {
+    "@angular/animations": "latest",
+    "@angular/cdk": "latest",
+    "@angular/common": "latest",
+    "@angular/compiler": "latest",
+    "@angular/core": "latest",
+    "@angular/forms": "latest",
+    "@angular/platform-browser": "latest",
+    "@angular/platform-browser-dynamic": "latest",
+    "@angular/router": "latest",
+    "@ant-design/icons-angular": "latest",
+    "ng-zorro-antd": "latest",
+    "rxjs": "latest",
+    "tslib": "latest",
+    "zone.js": "latest"
+  },
+  "devDependencies": {
+    "@angular/cli": "latest",
+    "@angular/compiler-cli": "latest",
+    "@types/node": "latest",
+    "angular-eslint": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "latest"
+  }
+}
