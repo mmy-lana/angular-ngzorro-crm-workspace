@@ -103,6 +103,33 @@ function isQuotaError(error: unknown): boolean {
 }
 
 /**
+ * Caps the tombstone registry so a long-lived instance cannot grow without
+ * bound.
+ *
+ * The oldest deletions are dropped first. A pruned tombstone loses only its
+ * ability to suppress a resurrection by an id that has been absent for a very
+ * long time; the record itself is untouched, and re-deleting the id writes a
+ * fresh tombstone. Losing a few thousand old ids is a far better trade than
+ * unbounded `localStorage` growth, which eventually surfaces as a failed write
+ * and a silently degraded cache.
+ */
+const MAX_TOMBSTONES = 1000;
+
+function pruneTombstones(registry: Map<UUID, Tombstone>): Tombstone[] {
+  if (registry.size <= MAX_TOMBSTONES) {
+    return [...registry.values()];
+  }
+  return [...registry.values()]
+    .sort((a, b) => {
+      if (a.deletedAt !== b.deletedAt) {
+        return a.deletedAt < b.deletedAt ? -1 : 1;
+      }
+      return a.id < b.id ? -1 : 1;
+    })
+    .slice(registry.size - MAX_TOMBSTONES);
+}
+
+/**
  * Last-writer-wins merge keyed on `id`. Records are compared by `version`;
  * ties keep the value already present in this window so that two tabs writing
  * simultaneously do not ping-pong the same payload back and forth.
@@ -237,7 +264,7 @@ export class CrmStorageService {
       return;
     }
     registry.set(id, { id, deletedAt: new Date().toISOString(), version });
-    this.save(CRM_STORAGE_KEYS.TOMBSTONES, [...registry.values()]);
+    this.save(CRM_STORAGE_KEYS.TOMBSTONES, pruneTombstones(registry));
   }
 
   /** Current deletion registry, keyed by id. */
@@ -251,7 +278,7 @@ export class CrmStorageService {
     if (!registry.delete(id)) {
       return;
     }
-    this.save(CRM_STORAGE_KEYS.TOMBSTONES, [...registry.values()]);
+    this.save(CRM_STORAGE_KEYS.TOMBSTONES, pruneTombstones(registry));
   }
 
   private readTombstoneMap(): Map<UUID, Tombstone> {
@@ -392,6 +419,22 @@ export class CrmStorageService {
       return;
     }
 
+    // The tombstone registry replicates in its own right, so a deletion reaches
+    // its peers the moment it is recorded rather than waiting for the next
+    // collection write to piggyback it. Peer tombstones are adopted first here
+    // so they are already in place when the next row arrives.
+    if (key === CRM_STORAGE_KEYS.TOMBSTONES) {
+      const absorbed = this.absorbTombstones(value);
+      if (!absorbed) {
+        return;
+      }
+      const merged = this.readTombstoneMap();
+      const serialized = [...merged.values()];
+      this.writeRaw(CRM_STORAGE_KEYS.TOMBSTONES, JSON.stringify(serialized));
+      this.changeSubject.next({ key, value: serialized });
+      return;
+    }
+
     // Adopt the sender's deletions before merging, so a row this window still
     // holds cannot be reintroduced by the very envelope that carried it.
     this.absorbTombstones(tombstones);
@@ -405,9 +448,9 @@ export class CrmStorageService {
    * record per id: a later deletion at a higher version wins, and at equal
    * version the earliest timestamp wins so the recorded moment is stable.
    */
-  private absorbTombstones(incoming: unknown): void {
+  private absorbTombstones(incoming: unknown): boolean {
     if (!Array.isArray(incoming) || incoming.length === 0) {
-      return;
+      return false;
     }
     const registry = this.readTombstoneMap();
     let changed = false;
@@ -434,8 +477,6 @@ export class CrmStorageService {
         changed = true;
       }
     }
-    if (changed) {
-      this.writeRaw(CRM_STORAGE_KEYS.TOMBSTONES, JSON.stringify([...registry.values()]));
-    }
+    return changed;
   }
 }

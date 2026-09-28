@@ -125,10 +125,18 @@ export class WorkspaceShellComponent {
   constructor() {
     this.shortcuts.init();
 
+    // `closeTab` awaits a discard dialog, so a rejection here is a real
+    // failure path: swallowing it with `void` turns a broken close into a
+    // keyboard shortcut that silently does nothing.
     this.shortcuts.tabCloseRequested$
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        void this.tabService.closeTab(this.tabService.activeTabId());
+        this.tabService
+          .closeTab(this.tabService.activeTabId())
+          .catch((error: unknown) => {
+            console.error('Failed to close active tab:', error);
+            this.message.error('Tab could not be closed.');
+          });
       });
 
     // Retiring tabs for deleted records is a shell concern, not a detail-view

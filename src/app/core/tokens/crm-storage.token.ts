@@ -26,7 +26,8 @@ export const SYNCABLE_STORAGE_KEYS: readonly string[] = [
   CRM_STORAGE_KEYS.ACCOUNTS,
   CRM_STORAGE_KEYS.CONTACTS,
   CRM_STORAGE_KEYS.OPPORTUNITIES,
-  CRM_STORAGE_KEYS.ACTIVITIES
+  CRM_STORAGE_KEYS.ACTIVITIES,
+  CRM_STORAGE_KEYS.TOMBSTONES
 ];
 
 /** Session keys. Workspace tabs are intentionally not durable across restarts. */

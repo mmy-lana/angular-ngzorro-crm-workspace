@@ -106,30 +106,17 @@
   color: var(--slds-text-secondary);
 }
 
-@media (pointer: coarse) {
-  .timeline__item {
-    padding: 10px 0;
-  }
-
-  .timeline__check {
-    height: 28px;
-  }
-
-  .timeline__check input[type='checkbox'] {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 /*
- * The checkbox is a 20px control inside a 28px row, which is below the 44x44
- * WCAG 2.5.5 minimum on touch.
+ * WCAG 2.5.5 on touch: the checkbox is a 20px control, below the 44x44 minimum.
  *
  * The target is grown to 44px and the reclaimed space is taken back with a
  * negative right margin, so the text column does not shift right. A negative
  * *left* margin would have pushed the control past the 12px gutter of the body
  * it sits in and been a 2px horizontal overflow of its own. The glyph stays at
- * 20px and is centred in the enlarged target.
+ * 20px inside the enlarged target.
+ *
+ * This replaces an earlier coarse-pointer block that set the row to a 28px
+ * target; keeping both would have left a shadowed rule below this one.
  */
 @media (pointer: coarse) {
   .timeline__item {

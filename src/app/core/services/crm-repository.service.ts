@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, Signal, WritableSignal, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, Signal, WritableSignal, computed, inject, isDevMode, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   Account,
@@ -141,18 +141,27 @@ function applyPatch<T extends object>(current: T, patch: Partial<T>): T {
 /**
  * Demo seed opt-in.
  *
- * Defaults to enabled so a developer's first run is not an empty shell, and is
- * switched off by setting `CRM_SEED_DEMO_DATA` to `false` in the build-time
- * environment (`.env`, CI variable, or hosting config). Production builds
- * should set it; the guard exists so that forgetting to can never write
- * fabricated CRM records into a real database.
+ * Seeding is the safe default *only* for a developer running locally. A build
+ * that has not opted in must never fabricate records: an empty production
+ * database is an empty database, and filling it with invented customers is
+ * both a data-integrity incident and a confidentiality problem. The explicit
+ * setting therefore wins in both directions, and the fallback requires a dev
+ * build served from the loopback interface - a dev bundle published behind a
+ * real hostname is still a production surface.
  */
 function isSeedDataEnabled(): boolean {
   const configured = readBuildTimeEnv('CRM_SEED_DEMO_DATA');
-  if (configured === undefined) {
+  if (configured === 'false' || configured === '0') {
+    return false;
+  }
+  if (configured === 'true' || configured === '1') {
     return true;
   }
-  return configured !== 'false' && configured !== '0';
+  return (
+    isDevMode() &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  );
 }
 
 /**
@@ -743,7 +752,11 @@ export class CrmRepositoryService {
    * outlives its parent is observable to a subscriber.
    */
   public deleteAccount(id: UUID): void {
-    this.requireEntity(this.accountsCollection, id);
+    // Captured before the signal is rewritten. Reading `this.account(id)` after
+    // the removal would return `undefined` and record the tombstone at
+    // version 0, which any peer holding version >= 1 would then be free to
+    // overwrite - silently resurrecting a deliberately deleted record.
+    const targetAccount = this.requireEntity(this.accountsCollection, id);
 
     const removedOpportunities = this.opportunitiesSignal().filter(
       opportunity => opportunity.accountId === id
@@ -794,7 +807,7 @@ export class CrmRepositoryService {
     for (const contact of removedContacts) {
       this.storage.recordTombstone(contact.id, contact.version);
     }
-    this.storage.recordTombstone(id, this.account(id)?.version ?? 0);
+    this.storage.recordTombstone(id, targetAccount.version);
 
     this.storage.save(this.activitiesCollection.storageKey, survivingActivities);
     this.storage.save(this.opportunitiesCollection.storageKey, survivingOpportunities);
@@ -996,7 +1009,9 @@ export class CrmRepositoryService {
 
   /** Deletes an opportunity and cascades its activities. */
   public deleteOpportunity(id: UUID): void {
-    this.requireEntity(this.opportunitiesCollection, id);
+    // Same ordering hazard as deleteAccount: the version must be read before
+    // the opportunity leaves the signal.
+    const targetOpportunity = this.requireEntity(this.opportunitiesCollection, id);
 
     const removedActivities = this.activitiesSignal().filter(
       activity => activity.entityType === 'OPPORTUNITY' && activity.entityId === id
@@ -1012,7 +1027,7 @@ export class CrmRepositoryService {
     for (const activity of removedActivities) {
       this.storage.recordTombstone(activity.id, activity.version);
     }
-    this.storage.recordTombstone(id, this.opportunity(id)?.version ?? 0);
+    this.storage.recordTombstone(id, targetOpportunity.version);
 
     this.storage.save(this.activitiesCollection.storageKey, survivingActivities);
     this.storage.save(this.opportunitiesCollection.storageKey, survivingOpportunities);
@@ -1186,12 +1201,34 @@ export class CrmRepositoryService {
     return owner ? owner.ownerId : DEFAULT_OWNER_ID;
   }
 
+  /**
+   * Derives the next free `ACC-NNNN`.
+   *
+   * Two defences: a non-numeric stored number yields `NaN` from `parseInt` and
+   * must not poison the running maximum, and a free counter is not by itself a
+   * free *number* - a hand-entered or imported `ACC-1011` would collide with a
+   * counter that only knows about the values it has parsed. The result is
+   * therefore checked against every existing number and advanced until it is
+   * genuinely unused.
+   */
   private nextAccountNumber(): string {
+    const taken = new Set(
+      this.accountsSignal()
+        .map(account => account.accountNumber.trim().toUpperCase())
+        .filter(number => number.length > 0)
+    );
+
     const highest = this.accountsSignal().reduce((max, account) => {
-      const suffix = Number.parseInt(account.accountNumber.replace(/\D+/g, ''), 10);
+      const digits = account.accountNumber.replace(/\D+/g, '');
+      const suffix = digits.length > 0 ? Number.parseInt(digits, 10) : Number.NaN;
       return Number.isFinite(suffix) && suffix > max ? suffix : max;
     }, 1000);
-    return `ACC-${highest + 1}`;
+
+    let candidate = highest + 1;
+    while (taken.has(`ACC-${candidate}`)) {
+      candidate++;
+    }
+    return `ACC-${candidate}`;
   }
 
   /* ---------------------------------------------------------------------- */
