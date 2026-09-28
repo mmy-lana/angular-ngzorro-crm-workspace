@@ -12,4 +12,18 @@
   --slds-font-size-label: 11px;
   --slds-font-size-body: 13px;
   --slds-font-size-heading: 16px;
+
+  // One colour per pipeline stage, resolved by the `stageColor` pipe so the
+  // ribbon, badges and tables stay visually consistent and stay themeable.
+  --crm-stage-prospecting: #7f8c9b;
+  --crm-stage-qualification: #4a7fb5;
+  --crm-stage-needs-analysis: #2f6f9f;
+  --crm-stage-value-proposition: #0176d3;
+  --crm-stage-decision-makers: #7b4fb5;
+  --crm-stage-negotiation: #fe9339;
+  --crm-stage-closed-won: #2e844a;
+  --crm-stage-closed-lost: #ea001e;
+
+  // Soft wash used behind a stage colour for "reached but not current" ribbons.
+  --crm-stage-wash: color-mix(in srgb, currentColor 12%, transparent);
 }

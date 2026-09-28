@@ -1,0 +1,191 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Desktop chevron ribbon                                                      */
+/* -------------------------------------------------------------------------- */
+
+.stage-ribbon {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+}
+
+.stage-ribbon__item {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.stage-ribbon__chevron {
+  --stage-color: var(--slds-border);
+
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  padding: 6px 14px 6px 18px;
+  /* Chevron: a notch on the left, a point on the right. */
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+  background: var(--slds-surface);
+  color: var(--slds-text-secondary);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.stage-ribbon__item:first-child .stage-ribbon__chevron {
+  padding-left: 10px;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+}
+
+.stage-ribbon__item:last-child .stage-ribbon__chevron {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  padding-right: 10px;
+}
+
+.stage-ribbon__text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.stage-ribbon__chevron.is-reached {
+  background: color-mix(in srgb, var(--stage-color) 22%, var(--slds-surface-card));
+  color: var(--slds-text-primary);
+}
+
+.stage-ribbon__chevron.is-current {
+  background: var(--stage-color);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.stage-ribbon__chevron.is-upcoming {
+  background: var(--slds-surface);
+  color: color-mix(in srgb, var(--slds-text-secondary) 60%, transparent);
+}
+
+.stage-ribbon__chevron.is-closed {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--stage-color) 16%, var(--slds-surface-card)),
+    color-mix(in srgb, var(--stage-color) 16%, var(--slds-surface-card)) 4px,
+    var(--slds-surface-card) 4px,
+    var(--slds-surface-card) 8px
+  );
+  color: var(--stage-color);
+}
+
+.stage-ribbon__chevron:disabled {
+  cursor: default;
+}
+
+.stage-ribbon__chevron:not(:disabled):hover {
+  filter: brightness(0.94);
+}
+
+.stage-ribbon__chevron:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile trigger and bottom sheet                                             */
+/* -------------------------------------------------------------------------- */
+
+.stage-path-mobile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--slds-border);
+  border-radius: 2px;
+  background: var(--slds-surface-card);
+  font: inherit;
+  color: var(--slds-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage-path-mobile:disabled {
+  cursor: default;
+}
+
+.stage-path-mobile__dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.stage-path-mobile__label {
+  flex: 1 1 auto;
+  font-size: var(--slds-font-size-heading);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-path-mobile__action {
+  flex: 0 0 auto;
+  font-size: var(--slds-font-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slds-brand);
+}
+
+.stage-sheet {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-sheet__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--slds-border);
+  background: transparent;
+  font: inherit;
+  color: var(--slds-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage-sheet__option.is-current {
+  font-weight: 700;
+}
+
+.stage-sheet__option:disabled {
+  cursor: default;
+}
+
+.stage-sheet__dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.stage-sheet__label {
+  flex: 1 1 auto;
+}
