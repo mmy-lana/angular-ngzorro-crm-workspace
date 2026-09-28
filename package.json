@@ -26,11 +26,17 @@
     "zone.js": "latest"
   },
   "devDependencies": {
+    "@angular/build": "^22.2.0",
     "@angular/cli": "latest",
     "@angular/compiler-cli": "latest",
+    "@eslint/js": "^10.0.1",
     "@types/node": "latest",
     "angular-eslint": "latest",
-    "typescript": "latest",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
     "typescript-eslint": "latest"
+  },
+  "pnpm": {
+    "dangerouslyAllowAllBuilds": true
   }
 }

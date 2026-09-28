@@ -29,3 +29,8 @@ test.log
 Thumbs.db
 .env
 repomix-output.xml
+
+# Local-only pnpm configuration
+.npmrc
+.pnpm-store
+pnpm-lock.yaml.bak
