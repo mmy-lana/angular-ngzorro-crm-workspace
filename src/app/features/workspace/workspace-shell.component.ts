@@ -96,6 +96,7 @@ interface Pane {
         [activeTabTitle]="tabService.activeTab().title"
         [entityCount]="recordCount()"
         (quickActionClick)="onQuickAction($event)"
+        (statusClick)="onStatusClick()"
       />
 
       <app-quick-create-drawer
@@ -245,24 +246,33 @@ export class WorkspaceShellComponent {
   }
 
   /**
-   * Search is always actionable.
+   * Search is always actionable and context-sensitive.
    *
-   * On a list tab the shortcut focuses its search box. Anywhere else it opens
-   * the accounts directory and focuses that, rather than telling the user where
-   * search lives - a message that reads as a broken key. The focus request is
-   * deferred by a frame because the newly opened pane has to be created and
-   * laid out before its input exists to be focused.
+   * On a list tab the shortcut focuses its search box. When viewing an opportunity,
+   * it routes to the opportunities list; otherwise, it routes to accounts.
    */
   private handleSearchAction(): void {
-    if (this.tabService.activeTab().entityType === 'LIST') {
+    const active = this.tabService.activeTab();
+    if (active.entityType === 'LIST') {
       this.shortcuts.triggerSearchFocus();
       return;
     }
 
-    this.openListTab('accounts', 'Accounts', 'team');
-    // Give the outlet a change-detection pass to mount the list before asking
-    // for focus. Synchronously, the input does not exist yet.
+    if (active.entityType === 'OPPORTUNITY') {
+      this.openListTab('opportunities', 'Opportunities', 'dollar');
+    } else {
+      this.openListTab('accounts', 'Accounts', 'team');
+    }
+
     setTimeout(() => this.shortcuts.triggerSearchFocus(), SEARCH_FOCUS_DELAY_MS);
+  }
+
+  protected onStatusClick(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const activePane = document.querySelector('.workspace-pane:not([hidden])');
+    activePane?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 

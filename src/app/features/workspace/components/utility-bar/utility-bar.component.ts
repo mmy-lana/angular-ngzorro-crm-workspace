@@ -21,7 +21,16 @@ export type QuickAction = 'NEW_ACCOUNT' | 'NEW_TASK' | 'SEARCH';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="utility-bar" role="toolbar" aria-label="Workspace actions and status">
-      <div class="utility-bar__status" aria-live="polite">
+      <div
+        class="utility-bar__status"
+        role="button"
+        tabindex="0"
+        aria-live="polite"
+        [attr.aria-label]="'Active pane: ' + (activeTabTitle() || 'Overview') + '. Click to scroll to top'"
+        (click)="statusClick.emit()"
+        (keydown.enter)="statusClick.emit()"
+        (keydown.space)="statusClick.emit(); $event.preventDefault()"
+      >
         <span class="utility-bar__count">{{ entityCount() }}</span>
         <span class="utility-bar__status-label">
           {{ entityCount() === 1 ? 'record' : 'records' }} in workspace
@@ -86,6 +95,18 @@ export type QuickAction = 'NEW_ACCOUNT' | 'NEW_TASK' | 'SEARCH';
         min-width: 0;
         font-size: var(--slds-font-size-body);
         color: var(--slds-text-secondary);
+        cursor: pointer;
+        user-select: none;
+        border-radius: 2px;
+      }
+
+      .utility-bar__status:hover .utility-bar__tab-status {
+        text-decoration: underline;
+      }
+
+      .utility-bar__status:focus-visible {
+        outline: 2px solid var(--slds-brand);
+        outline-offset: 2px;
       }
 
       .utility-bar__count {
@@ -164,6 +185,7 @@ export class UtilityBarComponent {
   public readonly activeTabTitle = input<string>('');
 
   public readonly quickActionClick = output<QuickAction>();
+  public readonly statusClick = output<void>();
 
   protected tabStatus(): string {
     const title = this.activeTabTitle();
