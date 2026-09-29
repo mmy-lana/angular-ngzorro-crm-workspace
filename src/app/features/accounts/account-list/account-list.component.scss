@@ -26,6 +26,25 @@
   color: var(--slds-text-secondary);
 }
 
+.list__result-count {
+  margin-left: auto;
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  .list__filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .list__result-count {
+    margin-left: 0;
+  }
+}
+
 .list__chip {
   display: inline-flex;
   align-items: center;

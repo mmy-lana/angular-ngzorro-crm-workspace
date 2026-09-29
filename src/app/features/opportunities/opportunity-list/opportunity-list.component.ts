@@ -18,7 +18,7 @@ import { QuickCreateStateService } from '@core/services/quick-create-state.servi
 import { ViewportService } from '@core/services/viewport.service';
 import { WorkspaceTabService } from '@core/services/workspace-tab.service';
 import { evaluateCriteria } from '@core/utils/filter-evaluator';
-import { STAGE_CONFIG, isClosedStage } from '@core/utils/pipeline-calc';
+import { STAGE_CONFIG, isClosedStage, toLocalDateOnly } from '@core/utils/pipeline-calc';
 import { formatCompactCurrency } from '@shared/pipes/currency-formatter.pipe';
 import { StageColorPipe } from '@shared/pipes/stage-color.pipe';
 import { CompactBadgeComponent, CompactBadgeColor } from '@shared/ui/compact-badge/compact-badge.component';
@@ -328,7 +328,7 @@ export class OpportunityListComponent {
   }
 
   protected isOverdue(row: OpportunityRow): boolean {
-    return !isClosedStage(row.stage) && row.closeDate < new Date().toISOString().slice(0, 10);
+    return !isClosedStage(row.stage) && row.closeDate < toLocalDateOnly();
   }
 
   protected format(value: number): string {

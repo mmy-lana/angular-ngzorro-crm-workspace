@@ -12,7 +12,7 @@ import { ViewportService } from '@core/services/viewport.service';
 import { WorkspaceTabService } from '@core/services/workspace-tab.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { QuickCreateStateService } from '@core/services/quick-create-state.service';
-import { STAGE_CONFIG, isClosedStage } from '@core/utils/pipeline-calc';
+import { STAGE_CONFIG, isClosedStage, toLocalDateOnly } from '@core/utils/pipeline-calc';
 import { CurrencyFormatterPipe, formatCompactCurrency } from '@shared/pipes/currency-formatter.pipe';
 import { CompactBadgeComponent, CompactBadgeColor } from '@shared/ui/compact-badge/compact-badge.component';
 import { ActivityTimelineComponent } from '@shared/ui/activity-timeline/activity-timeline.component';
@@ -389,7 +389,7 @@ export class OpportunityDetailComponent {
   }
 
   protected isOverdue(closeDate: string): boolean {
-    return !isClosedStage(this.opportunity()?.stage ?? OpportunityStage.PROSPECTING) && closeDate < new Date().toISOString().slice(0, 10);
+    return !isClosedStage(this.opportunity()?.stage ?? OpportunityStage.PROSPECTING) && closeDate < toLocalDateOnly();
   }
 
   protected bannerMetrics(record: { amount: number; probability: number; expectedRevenue: number; closeDate: string }): { label: string; value: string }[] {

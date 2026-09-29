@@ -178,6 +178,27 @@
   font-variant-numeric: tabular-nums;
 }
 
+@media (max-width: 480px) {
+  .list__filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .list__stage-filter {
+    width: 100%;
+  }
+
+  .list__stage-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .list__result-count {
+    margin-left: 0;
+  }
+}
+
 .list__stage {
   display: inline-flex;
   align-items: center;

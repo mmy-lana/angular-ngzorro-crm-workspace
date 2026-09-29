@@ -69,8 +69,8 @@ type ColumnKey = (typeof ALL_COLUMNS)[number]['key'];
         (columnsChange)="hiddenColumns.set($event)"
       />
 
-      @if (filters().length > 0) {
-        <div class="list__filter-bar">
+      <div class="list__filter-bar">
+        @if (filters().length > 0) {
           <span class="list__filter-label">Filters</span>
           @for (filter of filters(); track $index) {
             <span class="list__chip">
@@ -84,8 +84,9 @@ type ColumnKey = (typeof ALL_COLUMNS)[number]['key'];
             </span>
           }
           <button nz-button nzType="link" nzSize="small" (click)="clearFilters()">Clear all</button>
-        </div>
-      }
+        }
+        <span class="list__result-count">{{ rows().length }} of {{ total() }} accounts</span>
+      </div>
 
       @if (viewport.isMobile()) {
         @if (rows().length === 0) {
@@ -218,6 +219,8 @@ export class AccountListComponent {
     }
     return counts;
   });
+
+  protected readonly total = computed(() => this.repo.accounts().length);
 
   private readonly enriched = computed(() =>
     this.repo.accounts().map(account => ({

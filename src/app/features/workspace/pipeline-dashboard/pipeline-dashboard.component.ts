@@ -13,7 +13,8 @@ import {
   STAGE_CONFIG,
   calculateOpenPipelineValue,
   calculateWeightedForecast,
-  calculateWinRate
+  calculateWinRate,
+  toLocalDateOnly
 } from '@core/utils/pipeline-calc';
 
 interface StageRow {
@@ -196,7 +197,7 @@ export class PipelineDashboardComponent {
   );
 
   protected readonly overdueCount = computed(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateOnly();
     return this.repo
       .opportunities()
       .filter(opportunity => !this.isClosed(opportunity.stage) && opportunity.closeDate < today).length;
@@ -266,10 +267,10 @@ export class PipelineDashboardComponent {
   });
 
   protected readonly closingSoon = computed(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateOnly();
     const horizon = new Date();
     horizon.setDate(horizon.getDate() + 30);
-    const horizonDay = horizon.toISOString().slice(0, 10);
+    const horizonDay = toLocalDateOnly(horizon);
 
     return this.repo
       .opportunities()

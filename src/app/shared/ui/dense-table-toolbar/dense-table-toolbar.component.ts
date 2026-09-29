@@ -238,6 +238,12 @@ export class DenseTableColumnsPopoverComponent {
           min-height: 44px;
         }
       }
+
+      @media (max-width: 767px) {
+        .toolbar__density {
+          display: none;
+        }
+      }
     `
   ]
 })
