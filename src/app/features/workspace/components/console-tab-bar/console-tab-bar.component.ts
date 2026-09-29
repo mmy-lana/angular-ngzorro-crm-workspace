@@ -1,12 +1,37 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { WorkspaceTab } from '@core/models/crm.models';
+import { SupportedIcon, WorkspaceTab } from '@core/models/crm.models';
 import { ViewportService } from '@core/services/viewport.service';
 import { inject } from '@angular/core';
 
 /** How many tabs fit inline before the rest collapse into an overflow menu. */
 const INLINE_TAB_LIMIT = 3;
+
+/** Master objects the launcher can open. */
+export type NavigationTarget = 'DASHBOARD' | 'ACCOUNTS' | 'OPPORTUNITIES';
+
+interface NavigationEntry {
+  readonly target: NavigationTarget;
+  readonly label: string;
+  readonly description: string;
+  readonly icon: SupportedIcon;
+}
+
+/**
+ * The three destinations that are always reachable, whether or not a tab for
+ * them is currently open. The launcher is deliberately separate from the tab
+ * list: a list is a thing you are looking at, and the master directories are
+ * the way to get to one.
+ */
+const NAVIGATION_ENTRIES: readonly NavigationEntry[] = [
+  { target: 'DASHBOARD', label: 'Executive Pipeline', description: 'Pipeline overview', icon: 'dashboard' },
+  { target: 'ACCOUNTS', label: 'Accounts', description: 'Master account directory', icon: 'team' },
+  { target: 'OPPORTUNITIES', label: 'Opportunities', description: 'Master pipeline list', icon: 'dollar' }
+];
+
+/** Prefix marking a mobile picker option as a launcher entry, not a real tab. */
+const NAV_OPTION_PREFIX = 'nav:';
 
 /**
  * Console tab strip.
@@ -37,9 +62,16 @@ const INLINE_TAB_LIMIT = 3;
             [value]="activeTabId()"
             (change)="onSelect($event)"
           >
-            @for (tab of tabs(); track tab.id) {
-              <option [value]="tab.id">{{ tab.title }}{{ tab.isDirty ? ' (unsaved)' : '' }}</option>
-            }
+            <optgroup label="Go to">
+              @for (entry of navigation; track entry.target) {
+                <option [value]="navOptionValue(entry.target)">{{ entry.label }}</option>
+              }
+            </optgroup>
+            <optgroup label="Open tabs">
+              @for (tab of tabs(); track tab.id) {
+                <option [value]="tab.id">{{ tab.title }}{{ tab.isDirty ? ' (unsaved)' : '' }}</option>
+              }
+            </optgroup>
           </select>
           <nz-icon nzType="down" />
         </label>
@@ -55,7 +87,25 @@ const INLINE_TAB_LIMIT = 3;
         }
       </div>
     } @else {
-      <div class="tab-bar" role="tablist" aria-label="Open records">
+      <div class="tab-bar">
+        <div
+          class="tab-bar__launcher"
+          nz-dropdown
+          nzTrigger="click"
+          [nzDropdownMenu]="navigationMenu"
+          role="button"
+          tabindex="0"
+          aria-haspopup="menu"
+          aria-label="Navigation"
+          (keydown.enter)="openLauncherMenu($event)"
+          (keydown.space)="openLauncherMenu($event); $event.preventDefault()"
+        >
+          <nz-icon nzType="menu" />
+          <span>Navigation</span>
+          <nz-icon nzType="down" class="tab-bar__launcher-caret" />
+        </div>
+
+        <div class="tab-bar__tabs" role="tablist" aria-label="Open records">
         @for (tab of inlineTabs(); track tab.id) {
           <div
             class="tab-bar__tab"
@@ -123,6 +173,28 @@ const INLINE_TAB_LIMIT = 3;
             }
           </ul>
         </nz-dropdown-menu>
+        </div>
+
+        <nz-dropdown-menu #navigationMenu="nzDropdownMenu">
+          <ul class="tab-bar__menu" role="menu">
+            @for (entry of navigation; track entry.target) {
+              <li role="none">
+                <button
+                  type="button"
+                  class="tab-bar__menu-item"
+                  role="menuitem"
+                  (click)="navigateObject.emit(entry.target)"
+                >
+                  <nz-icon [nzType]="entry.icon" />
+                  <span class="tab-bar__menu-text">
+                    <span class="tab-bar__menu-label">{{ entry.label }}</span>
+                    <span class="tab-bar__menu-description">{{ entry.description }}</span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        </nz-dropdown-menu>
       </div>
     }
   `
@@ -135,6 +207,7 @@ export class ConsoleTabBarComponent {
 
   public readonly tabSelect = output<string>();
   public readonly tabClose = output<string>();
+  public readonly navigateObject = output<NavigationTarget>();
 
   protected readonly activeTab = computed<WorkspaceTab>(() => {
     const all = this.tabs();
@@ -144,10 +217,39 @@ export class ConsoleTabBarComponent {
   protected readonly inlineTabs = computed(() => this.tabs().slice(0, INLINE_TAB_LIMIT));
   protected readonly overflow = computed(() => this.tabs().slice(INLINE_TAB_LIMIT));
 
+  protected readonly navigation = NAVIGATION_ENTRIES;
+
+  /** Mobile picker values for launcher entries are namespaced so they can never
+   * be mistaken for a tab id. */
+  protected navOptionValue(target: NavigationTarget): string {
+    return `${NAV_OPTION_PREFIX}${target}`;
+  }
+
   protected onSelect(event: Event): void {
     const target = event.target;
-    if (target instanceof HTMLSelectElement) {
-      this.tabSelect.emit(target.value);
+    if (!(target instanceof HTMLSelectElement)) {
+      return;
+    }
+    const value = target.value;
+    if (value.startsWith(NAV_OPTION_PREFIX)) {
+      // A launcher entry, not a tab: emit the intent and restore the picker so
+      // the control keeps showing the tab that is actually active.
+      const selected = value.slice(NAV_OPTION_PREFIX.length) as NavigationTarget;
+      this.navigateObject.emit(selected);
+      target.value = this.activeTabId();
+      return;
+    }
+    this.tabSelect.emit(value);
+  }
+
+  /**
+   * Keyboard equivalent of the launcher's click trigger. The dropdown listens
+   * for a pointer only, so without this the launcher is focusable but inert.
+   */
+  protected openLauncherMenu(event: Event): void {
+    const element = event.currentTarget;
+    if (element instanceof HTMLElement) {
+      element.click();
     }
   }
 

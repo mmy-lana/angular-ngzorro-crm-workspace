@@ -236,3 +236,35 @@
     overflow-x: auto;
   }
 }
+
+/* ------------------------------------------------------------------------- */
+/* Summary count links                                                        */
+/* ------------------------------------------------------------------------- */
+
+.dashboard__link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--slds-brand);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dashboard__link:hover {
+  color: var(--slds-brand-dark);
+}
+
+.dashboard__link:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (pointer: coarse) {
+  .dashboard__link {
+    /* 16px minimum so iOS does not zoom on focus. */
+    font-size: 16px;
+    padding: 4px 0;
+  }
+}

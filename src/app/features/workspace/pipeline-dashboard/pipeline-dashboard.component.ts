@@ -64,8 +64,15 @@ interface ForecastRow {
       <header class="dashboard__header">
         <h1 class="dashboard__title">Executive Pipeline</h1>
         <p class="dashboard__subtitle">
-          {{ repo.accounts().length }} accounts · {{ repo.contacts().length }} contacts ·
-          {{ repo.opportunities().length }} opportunities
+          <button type="button" class="dashboard__link" (click)="openAccountsList()">
+            {{ repo.accounts().length }} accounts
+          </button>
+          <span aria-hidden="true"> · </span>
+          <span>{{ repo.contacts().length }} contacts</span>
+          <span aria-hidden="true"> · </span>
+          <button type="button" class="dashboard__link" (click)="openOpportunitiesList()">
+            {{ repo.opportunities().length }} opportunities
+          </button>
         </p>
       </header>
 
@@ -284,6 +291,36 @@ export class PipelineDashboardComponent {
         isOverdue: false
       }));
   });
+
+  /**
+   * The counts in the subtitle are the fastest route to the master lists, so
+   * they are buttons rather than text. A number that looks like a link but is
+   * not is worse than plain text, and the underline below is the only thing
+   * distinguishing them.
+   */
+  protected openAccountsList(): void {
+    this.tabService.openTab({
+      id: WorkspaceTabService.tabIdFor('LIST', 'accounts'),
+      title: 'Accounts',
+      entityType: 'LIST',
+      entityId: null,
+      listKey: 'accounts',
+      icon: 'team',
+      closable: true
+    });
+  }
+
+  protected openOpportunitiesList(): void {
+    this.tabService.openTab({
+      id: WorkspaceTabService.tabIdFor('LIST', 'opportunities'),
+      title: 'Opportunities',
+      entityType: 'LIST',
+      entityId: null,
+      listKey: 'opportunities',
+      icon: 'dollar',
+      closable: true
+    });
+  }
 
   protected openOpportunity(id: string): void {
     this.tabService.openTab({

@@ -239,3 +239,75 @@
     padding: 2px 10px;
   }
 }
+
+/* ------------------------------------------------------------------------- */
+/* Object launcher                                                            */
+/* ------------------------------------------------------------------------- */
+
+/*
+ * The launcher is the console's only always-available route to the master
+ * directories, so it sits before the tab strip and is separated from it by a
+ * rule rather than by spacing alone - the grouping has to read at a glance.
+ */
+.tab-bar__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tab-bar__launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  background: var(--slds-surface-card);
+  color: var(--slds-brand-dark);
+  font: inherit;
+  font-size: var(--slds-font-size-body);
+  font-weight: 700;
+  cursor: pointer;
+  border-right: 1px solid var(--slds-border);
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+
+.tab-bar__launcher:hover {
+  background: color-mix(in srgb, var(--slds-brand) 10%, var(--slds-surface-card));
+  color: var(--slds-brand);
+}
+
+.tab-bar__launcher:focus-visible {
+  outline: 2px solid var(--slds-brand);
+  outline-offset: -2px;
+}
+
+.tab-bar__launcher-caret {
+  font-size: 10px;
+}
+
+.tab-bar__menu-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tab-bar__menu-label {
+  font-weight: 600;
+}
+
+.tab-bar__menu-description {
+  font-size: var(--slds-font-size-label);
+  color: var(--slds-text-secondary);
+  font-weight: 400;
+}
+
+@media (pointer: coarse) {
+  .tab-bar__launcher {
+    min-height: 44px;
+  }
+}

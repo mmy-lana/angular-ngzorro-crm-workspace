@@ -1,9 +1,22 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  ViewChild,
+  computed,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzPopoverModule } from 'ng-zorro-antd/popover';
+import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { NzSegmentedModule } from 'ng-zorro-antd/segmented';
 
 export type TableDensity = 'compact' | 'normal';
@@ -105,6 +118,7 @@ export class DenseTableColumnsPopoverComponent {
       <label class="toolbar__search">
         <nz-icon nzType="search" class="toolbar__search-icon" />
         <input
+          #searchInput
           nz-input
           type="search"
           class="toolbar__search-input"
@@ -234,6 +248,17 @@ export class DenseTableToolbarComponent {
    * closed mid-keystroke fires `searchChange` against a destroyed component.
    */
   private readonly destroyRef = inject(DestroyRef);
+  private readonly shortcuts = inject(KeyboardShortcutService);
+
+  /**
+   * The console keeps every open pane mounted and hides inactive ones, so a
+   * hidden list's toolbar is still subscribed. `focus()` is a no-op on a
+   * `display: none` element, but the visibility guard makes that explicit and
+   * keeps the visible pane's input as the one that receives focus regardless of
+   * subscription order.
+   */
+  @ViewChild('searchInput', { static: false })
+  private searchInputElement?: ElementRef<HTMLInputElement>;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
@@ -242,6 +267,24 @@ export class DenseTableToolbarComponent {
         this.debounceHandle = null;
       }
     });
+
+    this.shortcuts.searchFocusRequested$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.focusSearchInput());
+  }
+
+  private focusSearchInput(): void {
+    const element = this.searchInputElement?.nativeElement;
+    if (!element) {
+      return;
+    }
+    // A hidden pane's input is not focusable; skipping it avoids a no-op call
+    // and makes the outcome independent of which toolbar subscribes first.
+    if (element.offsetParent === null && element.ownerDocument.defaultView !== null) {
+      return;
+    }
+    element.focus();
+    element.select();
   }
 
   public readonly searchPlaceholder = input<string>('Search records...');

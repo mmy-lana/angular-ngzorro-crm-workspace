@@ -11,7 +11,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { WorkspaceTab } from '@core/models/crm.models';
+import { SupportedIcon, WorkspaceTab } from '@core/models/crm.models';
 import { CrmRepositoryService } from '@core/services/crm-repository.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { QuickCreateStateService } from '@core/services/quick-create-state.service';
@@ -22,9 +22,19 @@ import { AccountDetailComponent } from '@features/accounts/account-detail/accoun
 import { AccountListComponent } from '@features/accounts/account-list/account-list.component';
 import { OpportunityDetailComponent } from '@features/opportunities/opportunity-detail/opportunity-detail.component';
 import { OpportunityListComponent } from '@features/opportunities/opportunity-list/opportunity-list.component';
-import { ConsoleTabBarComponent } from '@features/workspace/components/console-tab-bar/console-tab-bar.component';
+import {
+  ConsoleTabBarComponent,
+  NavigationTarget
+} from '@features/workspace/components/console-tab-bar/console-tab-bar.component';
 import { UtilityBarComponent, QuickAction } from '@features/workspace/components/utility-bar/utility-bar.component';
 import { PipelineDashboardComponent } from '@features/workspace/pipeline-dashboard/pipeline-dashboard.component';
+
+/**
+ * Frames to wait before requesting focus on a pane that was just opened. One
+ * animation frame's worth of headroom is enough for the outlet to create the
+ * component; the delay is a scheduling detail, not a timeout to tune.
+ */
+const SEARCH_FOCUS_DELAY_MS = 50;
 
 interface Pane {
   readonly tab: WorkspaceTab;
@@ -70,6 +80,7 @@ interface Pane {
         [activeTabId]="tabService.activeTabId()"
         (tabSelect)="onTabSelect($event)"
         (tabClose)="onTabClose($event)"
+        (navigateObject)="onNavigateObject($event)"
       />
 
       <main class="shell__main">
@@ -161,6 +172,40 @@ export class WorkspaceShellComponent {
     });
   }
 
+  /**
+   * Routes a launcher entry to a tab.
+   *
+   * The dashboard already exists as the workspace floor, so selecting it is
+   * enough; the two master lists are opened on demand. `openTab` focuses an
+   * existing tab rather than duplicating it, so repeated navigation is a no-op
+   * instead of a stack of identical panes.
+   */
+  protected onNavigateObject(target: NavigationTarget): void {
+    switch (target) {
+      case 'DASHBOARD':
+        this.tabService.selectTab(WorkspaceTabService.DASHBOARD_TAB_ID);
+        return;
+      case 'ACCOUNTS':
+        this.openListTab('accounts', 'Accounts', 'team');
+        return;
+      case 'OPPORTUNITIES':
+        this.openListTab('opportunities', 'Opportunities', 'dollar');
+        return;
+    }
+  }
+
+  private openListTab(listKey: 'accounts' | 'opportunities', title: string, icon: SupportedIcon): void {
+    this.tabService.openTab({
+      id: WorkspaceTabService.tabIdFor('LIST', listKey),
+      title,
+      entityType: 'LIST',
+      entityId: null,
+      listKey,
+      icon,
+      closable: true
+    });
+  }
+
   protected onTabSelect(tabId: string): void {
     this.tabService.selectTab(tabId);
   }
@@ -190,7 +235,7 @@ export class WorkspaceShellComponent {
         return;
       }
       case 'SEARCH':
-        this.reportSearchAvailability();
+        this.handleSearchAction();
         return;
     }
   }
@@ -200,16 +245,24 @@ export class WorkspaceShellComponent {
   }
 
   /**
-   * Search lives in the list toolbars, so the shortcut is only meaningful on a
-   * list tab. On a detail tab it says where search does live instead of
-   * silently doing nothing, which reads as a broken key.
+   * Search is always actionable.
+   *
+   * On a list tab the shortcut focuses its search box. Anywhere else it opens
+   * the accounts directory and focuses that, rather than telling the user where
+   * search lives - a message that reads as a broken key. The focus request is
+   * deferred by a frame because the newly opened pane has to be created and
+   * laid out before its input exists to be focused.
    */
-  private reportSearchAvailability(): void {
+  private handleSearchAction(): void {
     if (this.tabService.activeTab().entityType === 'LIST') {
-      this.message.success('Use the search box above the table.');
+      this.shortcuts.triggerSearchFocus();
       return;
     }
-    this.message.info('Search is available on the Accounts and Opportunities list tabs.');
+
+    this.openListTab('accounts', 'Accounts', 'team');
+    // Give the outlet a change-detection pass to mount the list before asking
+    // for focus. Synchronously, the input does not exist yet.
+    setTimeout(() => this.shortcuts.triggerSearchFocus(), SEARCH_FOCUS_DELAY_MS);
   }
 }
 

@@ -33,6 +33,18 @@ export class KeyboardShortcutService {
   public readonly tabCloseRequested$ = this.tabCloseSubject.asObservable();
 
   /**
+   * Requests search focus from outside a key press.
+   *
+   * The shell routes the "/" shortcut and the Search button to the same
+   * subject, but the two arrive by different paths: the key press is caught on
+   * the document, while the button click has no key event to piggyback on.
+   * Emitting explicitly is what lets both reach the focused list.
+   */
+  public triggerSearchFocus(): void {
+    this.searchSubject.next();
+  }
+
+  /**
    * Binds the document listener. Idempotent, because the shell calls this from
    * its constructor and the service is a root singleton that may be constructed
    * again by an eager injector without a second listener being added.
