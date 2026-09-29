@@ -229,21 +229,16 @@ export class AccountListComponent {
 
   /** Search, filters and sorts compose through the shared evaluator. */
   protected readonly rows = computed(() => {
-    const term = this.searchTerm().trim().toLowerCase();
-    const searchCriteria: FilterCriterion[] =
-      term.length === 0
-        ? []
-        : [
-            { field: 'account.name', operator: 'contains', value: term },
-            { field: 'account.accountNumber', operator: 'contains', value: term },
-            { field: 'account.ownerName', operator: 'contains', value: term },
-            { field: 'account.industry', operator: 'contains', value: term }
-          ];
-    return evaluateCriteria(
-      this.enriched(),
-      [...this.filters(), ...searchCriteria],
-      this.sorts()
-    );
+    const term = this.searchTerm().trim();
+    const search =
+      term.length > 0
+        ? {
+            term,
+            fields: ['account.name', 'account.accountNumber', 'account.ownerName', 'account.industry']
+          }
+        : undefined;
+
+    return evaluateCriteria(this.enriched(), this.filters(), this.sorts(), search);
   });
 
   protected readonly pageRows = computed(() => {

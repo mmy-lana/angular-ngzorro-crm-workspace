@@ -224,21 +224,22 @@ export class OpportunityListComponent {
   protected readonly total = computed(() => this.repo.opportunities().length);
 
   protected readonly rows = computed(() => {
-    const term = this.searchTerm().trim().toLowerCase();
     const criteria: FilterCriterion[] = [];
-
-    if (term.length > 0) {
-      criteria.push(
-        { field: 'name', operator: 'contains', value: term },
-        { field: 'accountName', operator: 'contains', value: term },
-        { field: 'ownerName', operator: 'contains', value: term }
-      );
-    }
     const stage = this.stageFilter();
     if (stage !== 'ALL') {
       criteria.push({ field: 'stage', operator: 'equals', value: stage });
     }
-    return evaluateCriteria(this.enriched(), criteria, this.sorts());
+
+    const term = this.searchTerm().trim();
+    const search =
+      term.length > 0
+        ? {
+            term,
+            fields: ['name', 'accountName', 'ownerName']
+          }
+        : undefined;
+
+    return evaluateCriteria(this.enriched(), criteria, this.sorts(), search);
   });
 
   protected readonly pageRows = computed(() => {

@@ -106,31 +106,47 @@ function isEmptyValue(value: unknown): boolean {
   return value === undefined || value === null || value === '';
 }
 
+/** Free-text search configuration across a specified set of candidate columns. */
+export interface SearchScope {
+  readonly term: string;
+  readonly fields: readonly string[];
+}
+
 /**
- * Applies a conjunctive filter chain and a multi-column sort to an array.
+ * Applies keyword search (OR across target fields), conjunctive filter criteria
+ * (AND across criteria), and multi-column sorting to an array.
  *
- * Filters are ANDed: every criterion must hold. Sorts apply in array order as a
- * tie-break chain, so `[{amount, desc}, {name, asc}]` sorts by amount first and
- * uses the name only to break ties. The input array is never mutated: a sorted
- * result is a copy, and a result with neither filters nor sorts is a plain copy
- * of the input.
- *
- * Null handling is deliberate. An empty field satisfies only an `equals` against
- * an empty target, because "no stage recorded" is not "stage equals
- * Prospecting". On sort, nulls always sink to the bottom regardless of
- * direction, so an undated deal never displaces a dated one at the top.
+ * The input array is never mutated: filtered/sorted results are fresh copies.
  */
 export function evaluateCriteria<T extends object>(
   items: readonly T[],
   filters: readonly FilterCriterion[],
-  sorts: readonly SortCriterion[]
+  sorts: readonly SortCriterion[],
+  search?: SearchScope
 ): T[] {
-  const filtered = filters.length === 0 ? [...items] : items.filter(item => matchesAll(item, filters));
+  let result = [...items];
+
+  if (search && search.term.trim().length > 0 && search.fields.length > 0) {
+    const termLower = search.term.trim().toLowerCase();
+    result = result.filter(item =>
+      search.fields.some(field => {
+        const value = getNestedValue(item, field);
+        if (value === null || value === undefined) {
+          return false;
+        }
+        return String(value).toLowerCase().includes(termLower);
+      })
+    );
+  }
+
+  if (filters.length > 0) {
+    result = result.filter(item => matchesAll(item, filters));
+  }
 
   if (sorts.length === 0) {
-    return filtered;
+    return result;
   }
-  return filtered.sort((a, b) => compare(a, b, sorts));
+  return result.sort((a, b) => compare(a, b, sorts));
 }
 
 function matchesAll(item: object, filters: readonly FilterCriterion[]): boolean {
